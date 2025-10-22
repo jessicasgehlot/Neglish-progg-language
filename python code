@@ -1,0 +1,182 @@
+import tkinter as tk
+from tkinter import scrolledtext, messagebox
+
+def translate_neg_to_python(neg_code: str) -> str:
+    lines = neg_code.splitlines()
+    py_lines = []
+    for ln in lines:
+        ln_str = ln.strip()
+        if not ln_str or ln_str.startswith("#"):
+            continue
+        parts = ln_str.split()
+        
+        # "set x = 5" or "set x = 'hello'"
+        if parts[0] == "set" and "=" in ln_str:
+            after = ln_str[len("set "):].strip()
+            py_lines.append(after)
+        
+        # "show x" or "show 'hello'"
+        elif parts[0] == "show":
+            expr = ln_str[len("show "):].strip()
+            py_lines.append(f"print({expr})")
+        
+        # "read x" - input from user
+        elif parts[0] == "read" and len(parts) == 2:
+            var = parts[1]
+            py_lines.append(f"{var} = input('Enter {var}: ')")
+        
+        # "reverse x" - reverse string
+        elif parts[0] == "reverse" and len(parts) == 2:
+            var = parts[1]
+            py_lines.append(f"{var} = {var}[::-1]")
+        
+        # "length of x" - get string/list length
+        elif parts[0] == "length" and len(parts) >= 3 and parts[1] == "of":
+            var = parts[2]
+            py_lines.append(f"print(len({var}))")
+        
+        # "add x to y" - addition
+        elif len(parts) >= 4 and parts[0] == "add" and parts[2] == "to":
+            val1 = parts[1]
+            val2 = parts[3]
+            if len(parts) > 4 and parts[4] == "store" and len(parts) > 5 and parts[5] == "in":
+                result_var = parts[6]
+                py_lines.append(f"{result_var} = {val1} + {val2}")
+            else:
+                py_lines.append(f"print({val1} + {val2})")
+        
+        # "multiply x by y" - multiplication
+        elif len(parts) >= 4 and parts[0] == "multiply" and parts[2] == "by":
+            val1 = parts[1]
+            val2 = parts[3]
+            if len(parts) > 4 and parts[4] == "store" and len(parts) > 5 and parts[5] == "in":
+                result_var = parts[6]
+                py_lines.append(f"{result_var} = {val1} * {val2}")
+            else:
+                py_lines.append(f"print({val1} * {val2})")
+        
+        # "subtract x from y" - subtraction
+        elif len(parts) >= 4 and parts[0] == "subtract" and parts[2] == "from":
+            val1 = parts[1]
+            val2 = parts[3]
+            if len(parts) > 4 and parts[4] == "store" and len(parts) > 5 and parts[5] == "in":
+                result_var = parts[6]
+                py_lines.append(f"{result_var} = {val2} - {val1}")
+            else:
+                py_lines.append(f"print({val2} - {val1})")
+        
+        # "divide x by y" - division
+        elif len(parts) >= 4 and parts[0] == "divide" and parts[2] == "by":
+            val1 = parts[1]
+            val2 = parts[3]
+            if len(parts) > 4 and parts[4] == "store" and len(parts) > 5 and parts[5] == "in":
+                result_var = parts[6]
+                py_lines.append(f"{result_var} = {val1} / {val2}")
+            else:
+                py_lines.append(f"print({val1} / {val2})")
+        
+        # "increase x until x = 10"
+        elif parts[0] == "increase" and len(parts) >= 4 and parts[2] == "until":
+            var = parts[1]
+            cond = " ".join(parts[3:])
+            py_lines.append(f"while not({cond}):")
+            py_lines.append(f"    {var} = {var} + 1")
+        
+        # "repeat x times" - simple loop
+        elif len(parts) >= 3 and parts[0] == "repeat" and parts[2] == "times":
+            times = parts[1]
+            py_lines.append(f"for _ in range({times}):")
+        
+        # "if x equals y then" - conditional
+        elif len(parts) >= 4 and parts[0] == "if" and parts[2] == "equals" and parts[4] == "then":
+            var1 = parts[1]
+            var2 = parts[3]
+            py_lines.append(f"if {var1} == {var2}:")
+        
+        # "create array x" - create empty array
+        elif len(parts) == 3 and parts[0] == "create" and parts[1] == "array":
+            var = parts[2]
+            py_lines.append(f"{var} = []")
+        
+        # "create array x with 1,2,3" - create array with values
+        elif len(parts) >= 5 and parts[0] == "create" and parts[1] == "array" and parts[3] == "with":
+            var = parts[2]
+            values = " ".join(parts[4:])
+            py_lines.append(f"{var} = [{values}]")
+        
+        # "add x to array y" - append to array
+        elif len(parts) >= 5 and parts[0] == "add" and parts[2] == "to" and parts[3] == "array":
+            val = parts[1]
+            arr = parts[4]
+            py_lines.append(f"{arr}.append({val})")
+        
+        # "while x equals y do" - while loop
+        elif len(parts) >= 5 and parts[0] == "while" and parts[2] == "equals" and parts[4] == "do":
+            var1 = parts[1]
+            var2 = parts[3]
+            py_lines.append(f"while {var1} == {var2}:")
+        
+        # "while x less than y do" - while loop with comparison
+        elif len(parts) >= 6 and parts[0] == "while" and parts[2] == "less" and parts[3] == "than" and parts[5] == "do":
+            var1 = parts[1]
+            var2 = parts[4]
+            py_lines.append(f"while {var1} < {var2}:")
+        
+        # "while x greater than y do" - while loop with comparison
+        elif len(parts) >= 6 and parts[0] == "while" and parts[2] == "greater" and parts[3] == "than" and parts[5] == "do":
+            var1 = parts[1]
+            var2 = parts[4]
+            py_lines.append(f"while {var1} > {var2}:")
+        
+        # "do while x equals y" - do-while loop (simulate with while True)
+        elif len(parts) >= 5 and parts[0] == "do" and parts[1] == "while" and parts[3] == "equals":
+            var1 = parts[2]
+            var2 = parts[4]
+            py_lines.append(f"while True:")
+            py_lines.append(f"    # do-while: break if not ({var1} == {var2})")
+        
+        # "end do while" - end do-while loop
+        elif len(parts) == 3 and parts[0] == "end" and parts[1] == "do" and parts[2] == "while":
+            py_lines.append(f"    if not ({py_lines[-1].split('not (')[1].split(')')[0]}):")  
+            py_lines.append(f"        break")
+        
+        # "increment x" - x = x + 1
+        elif len(parts) == 2 and parts[0] == "increment":
+            var = parts[1]
+            py_lines.append(f"{var} = {var} + 1")
+        
+        # "decrement x" - x = x - 1
+        elif len(parts) == 2 and parts[0] == "decrement":
+            var = parts[1]
+            py_lines.append(f"{var} = {var} - 1")
+        
+        else:
+            # fallback: pass through
+            py_lines.append(ln_str)
+    return "\n".join(py_lines)
+
+def run_code():
+    neg_code = text_input.get("1.0", tk.END)
+    try:
+        py_code = translate_neg_to_python(neg_code)
+        print("--- Translated Python code: ---")
+        print(py_code)
+        print("-------------------------------")
+        local_vars = {}
+        exec(py_code, {}, local_vars)
+        messagebox.showinfo("Result", "Code executed — check console/output.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred:\n{e}")
+
+root = tk.Tk()
+root.title("Neglish Interpreter")
+
+tk.Label(root, text="Write your Neglish code below:").pack(padx=5, pady=5)
+
+text_input = scrolledtext.ScrolledText(root, width=60, height=20)
+text_input.pack(padx=5, pady=5)
+
+btn_run = tk.Button(root, text="Run", command=run_code)
+btn_run.pack(pady=10)
+
+root.mainloop()
